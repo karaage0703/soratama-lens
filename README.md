@@ -22,3 +22,7 @@ MP4／WebM保存と、エフェクトをかけずに形式だけ変換する操�
 ## 参考
 
 [からあげの宙玉レンズ風エフェクト](https://karaage.hatenadiary.jp/entry/20120614/1339683656)
+
+## ライセンス
+
+[MIT License](LICENSE) © 2026 karaage
