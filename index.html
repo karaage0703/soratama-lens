@@ -30,10 +30,10 @@
 <label for="shine">ガラスの光沢 <output id="shineOut"></output></label><input id="shine" type="range" min="0" max="100" value="35">
 <div class="positions"><div><label for="posX">横位置 <output id="posXOut"></output></label><input id="posX" type="range" min="0" max="100" value="50"></div><div><label for="posY">縦位置 <output id="posYOut"></output></label><input id="posY" type="range" min="0" max="100" value="50"></div></div>
 <label class="check"><input id="invert" type="checkbox" checked> 球の中を上下・左右反転</label>
-<label class="check"><input id="original" type="checkbox"> 元の映像と比較</label>
+<label class="check"><input id="original" type="checkbox"> エフェクトなし（形式変換のみ）</label>
 <label for="quality">出力サイズ（長辺）</label><select id="quality"><option value="1280">1280 px · 軽快</option><option value="1920" selected>1920 px · 標準</option><option value="3840">3840 px · 高精細</option></select>
 </fieldset>
-<div class="exports"><button id="png" class="primary">画像を保存 <span>PNG ↓</span></button><label class="check"><input id="audio" type="checkbox" checked> 動画保存に元の音声を含める</label><button id="record">動画を先頭から保存</button><button id="stop" hidden>ここまでを保存して終了</button><p class="hint">動画は再生時間と同じ長さで保存。プレビューは無音です。保存中はこのタブを表示してください。</p></div>
+<div class="exports"><button id="png" class="primary">画像を保存 <span>PNG ↓</span></button><label class="check"><input id="audio" type="checkbox" checked> 動画保存に元の音声を含める</label><label for="videoFormat">動画の保存形式</label><select id="videoFormat" aria-describedby="formatHint"><option value="auto">自動（MP4優先）</option><option value="mp4">MP4（H.264）</option><option value="webm">WebM</option></select><p id="formatHint" class="hint" role="status"></p><button id="record">動画を先頭から保存</button><button id="stop" hidden>ここまでを保存して終了</button><p class="hint">動画は再生時間と同じ長さで保存。プレビューは無音です。保存中はこのタブを表示してください。</p></div>
 <button id="demo" class="textbutton">サンプルに戻す</button>
 </aside>
 </div>

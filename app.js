@@ -123,8 +123,33 @@
   function lock(value) {
     busy=value;
     $('settings').disabled=value;
-    for(const id of ['open','file','demo','reset','png','play','seek','audio'])$(id).disabled=value;
+    for(const id of ['open','file','demo','reset','png','play','seek','audio','videoFormat'])$(id).disabled=value;
     $('record').disabled=value||!isVideo()||!window.MediaRecorder||!canvas.captureStream;
+    updateFormat();
+  }
+  function supportedMime(format) {
+    if(!window.MediaRecorder)return null;
+    const sound=$('audio').checked;
+    // Never use a generic MP4 MIME here: it can select Opus instead of AAC.
+    const mp4=['avc1.42001E','avc1.4D0034','avc1'].map(codec=>`video/mp4;codecs=${codec}${sound?',mp4a.40.2':''}`);
+    const webm=sound?['video/webm;codecs=vp9,opus','video/webm;codecs=vp8,opus']:['video/webm;codecs=vp9','video/webm;codecs=vp8'];
+    const choices=format==='mp4'?mp4:format==='webm'?webm:[...mp4,...webm];
+    return choices.find(type=>MediaRecorder.isTypeSupported(type))||null;
+  }
+  function updateFormat() {
+    const choice=$('videoFormat').value, mime=supportedMime(choice);
+    const mp4Available=!!supportedMime('mp4');
+    $('formatHint').textContent=mime
+      ? `保存形式: ${mime.startsWith('video/mp4')?'MP4 / H.264'+($('audio').checked?' + AAC':'（音声なし）'):'WebM'}。${!mp4Available?'このブラウザは現在の音声設定でMP4保存に未対応です。':''}`
+      : 'このブラウザは選択した形式で保存できません。WebMを選ぶか、音声を外してMP4対応を確認してください。';
+    $('record').disabled=busy||!isVideo()||!mime||!canvas.captureStream;
+  }
+  async function resolveDuration(media) {
+    if(Number.isFinite(media.duration))return;
+    // MediaRecorder WebM commonly has no Duration element. Seek to discover its end.
+    const end=waitEvent(media,'seeked');media.currentTime=1e10;await end;
+    if(!Number.isFinite(media.duration))throw new Error('動画の長さを取得できません。別の形式でお試しください。');
+    const start=waitEvent(media,'seeked');media.currentTime=0;await start;
   }
   function format(t){ if(!Number.isFinite(t))return '0:00';return `${Math.floor(t/60)}:${String(Math.floor(t%60)).padStart(2,'0')}`; }
   function disposeSource(){
@@ -171,6 +196,7 @@
     const url=URL.createObjectURL(file);let media;
     try {
       if(video){media=document.createElement('video');media.muted=true;media.playsInline=true;media.preload='auto';const ready=waitEvent(media,'loadeddata');media.src=url;media.load();await ready;
+        await resolveDuration(media);
         if(!Number.isFinite(media.duration)||media.duration<=0)throw new Error('長さを取得できない動画には対応していません。');
         if(media.videoWidth>maxTexture||media.videoHeight>maxTexture)throw new Error(`動画がGPUの入力上限 ${maxTexture}px を超えています。`);
       }else{
@@ -201,6 +227,8 @@
   async function record(){
     if(busy||!isVideo())return;
     if(source.duration>600){status('初版の動画保存は10分以内に対応しています。先に動画を短くしてください。',true);return;}
+    const mime=supportedMime($('videoFormat').value);
+    if(!mime){status('選択した形式はこのブラウザでは保存できません。',true);return;}
     lock(true);status('動画保存を準備中…');stopReason='';let chunks=[],bytes=0;
     try {
       source.pause();source.loop=false;
@@ -212,8 +240,6 @@
       upload=true;render();
       capture=canvas.captureStream(30);
       if($('audio').checked)for(const track of audioDestination.stream.getAudioTracks())capture.addTrack(track.clone());
-      const mime=['video/webm;codecs=vp9,opus','video/webm;codecs=vp8,opus','video/webm','video/mp4'].find(t=>MediaRecorder.isTypeSupported(t));
-      if(!mime)throw new Error('このブラウザでは動画保存に対応していません。PNG保存をご利用ください。');
       recorder=new MediaRecorder(capture,{mimeType:mime,videoBitsPerSecond:Math.min(24000000,width*height*5)});
       recorder.ondataavailable=e=>{if(e.data.size){chunks.push(e.data);bytes+=e.data.size;if(bytes>512*1024*1024)stopRecording('保存サイズが512MBに達したため、ここまでを保存しました。');}};
       recorder.onerror=()=>stopRecording('録画エラーが発生しました。保存ファイルは途中までの可能性があります。');
@@ -238,6 +264,7 @@
   $('png').onclick=()=>{if(busy)return;upload=true;render();canvas.toBlob(blob=>{save(blob,'soratama.png');if(blob)status('PNGを保存しました。');},'image/png');};
   $('play').onclick=async()=>{if(!isVideo()||busy)return;try{if(source.paused)await source.play();else source.pause();}catch(e){status(`再生できません: ${e.message}`,true);}};
   $('seek').oninput=()=>{if(isVideo()&&!busy)source.currentTime=+$('seek').value;};
+  $('videoFormat').onchange=updateFormat;$('audio').onchange=updateFormat;
   $('record').onclick=()=>void record();$('stop').onclick=()=>stopRecording('ここまでの動画を保存しました。');
   canvas.onpointerdown=e=>{if(busy)return;canvas.setPointerCapture(e.pointerId);move(e);};
   canvas.onpointermove=e=>{if(canvas.hasPointerCapture(e.pointerId))move(e);};
